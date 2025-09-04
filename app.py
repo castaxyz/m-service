@@ -6,6 +6,8 @@ import mysql.connector
 import sqlalchemy
 from abc import ABC, abstractmethod
 from typing import List
+from sqlalchemy import create_engine, text
+
 
 #
 # 1. Abstracción del Reproductor de Música (Music Player)
@@ -76,15 +78,19 @@ class SqlHistoryRepository(IHistoryRepository):
         return [f"'{row[0]}' - {row[1]}" for row in rows]
 
 class MySqlHistoryRepository(IHistoryRepository):
-    """Implementación concreta para un repositorio de historial basado en MySQL."""
-    def __init__(self, url:str):
-        self.conn = None
+    """Implementación concreta para un repositorio de historial basado en MySQL con SQLAlchemy."""
+
+    def __init__(self, url: str):
         try:
             # Crear engine con SQLAlchemy a partir de la URL
-            self.engine = sqlalchemy.create_engine(url)
+            self.engine = create_engine(
+                url,
+                connect_args={"ssl": {"ssl_disabled": True}}  # necesario en Railway/Streamlit Cloud
+            )
             self.conn = self.engine.connect()
-            st.success("Conexión a MySQL exitosa.")
+            st.success("Conexión a MySQL exitosa 🚀.")
         except Exception as err:
+            self.conn = None
             st.error(f"Error al conectar a MySQL: {err}")
 
     def create_table_from_schema(self, table_name, columns):
@@ -99,51 +105,44 @@ class MySqlHistoryRepository(IHistoryRepository):
                 col_def += " PRIMARY KEY"
             if 'NOT NULL' in col['constraints']:
                 col_def += " NOT NULL"
-            column_defs.append(col_def)
-        
-        # Agrega la restricción de auto-incremento a la clave primaria si es un INT
-        for col in columns:
             if 'PRIMARY KEY' in col['constraints'] and col['type'].upper() == 'INT':
-                for i, col_def in enumerate(column_defs):
-                    if col['name'] in col_def:
-                        column_defs[i] += " AUTO_INCREMENT"
-
+                col_def += " AUTO_INCREMENT"
+            column_defs.append(col_def)
         query = f"CREATE TABLE IF NOT EXISTS `{table_name}` ({', '.join(column_defs)})"
-        
+
         try:
-            cursor = self.conn.cursor()
-            cursor.execute(query)
-            self.conn.commit()
-            st.success(f"Tabla `{table_name}` creada exitosamente.")
-        except mysql.connector.Error as err:
+            with self.engine.begin() as conn:
+                conn.execute(text(query))
+            st.success(f"Tabla `{table_name}` creada exitosamente ✅.")
+        except Exception as err:
             st.error(f"Error al crear la tabla: {err}")
 
     def save_playback(self, song_title: str):
-        if self.conn:
-            cursor = self.conn.cursor()
-            timestamp = datetime.datetime.now()
-            # Asume que la tabla es "history" y tiene columnas "song_title" y "timestamp"
-            query = "INSERT INTO history (song_title, timestamp) VALUES (%s, %s)"
-            try:
-                cursor.execute(query, (song_title, timestamp))
-                self.conn.commit()
-                st.success("Historial de reproducción guardado en MySQL.")
-            except mysql.connector.Error as err:
-                st.error(f"Error al guardar el historial: {err}")
-        else:
+        if not self.conn:
             st.error("No se pudo guardar el historial: no hay conexión a la base de datos.")
+            return
+
+        timestamp = datetime.datetime.now()
+        query = text("INSERT INTO history (song_title, timestamp) VALUES (:title, :ts)")
+        try:
+            with self.engine.begin() as conn:
+                conn.execute(query, {"title": song_title, "ts": timestamp})
+            st.success("Historial de reproducción guardado en MySQL 🎵.")
+        except Exception as err:
+            st.error(f"Error al guardar el historial: {err}")
 
     def get_history(self) -> List[str]:
-        if self.conn:
-            cursor = self.conn.cursor()
-            try:
-                cursor.execute("SELECT song_title, timestamp FROM history ORDER BY timestamp DESC")
-                rows = cursor.fetchall()
+        if not self.conn:
+            return []
+
+        try:
+            with self.engine.connect() as conn:
+                result = conn.execute(text("SELECT song_title, timestamp FROM history ORDER BY timestamp DESC"))
+                rows = result.fetchall()
                 return [f"'{row[0]}' - {row[1].strftime('%Y-%m-%d %H:%M:%S')}" for row in rows]
-            except mysql.connector.Error as err:
-                st.error(f"Error al obtener el historial: {err}")
-                return []
-        return []
+        except Exception as err:
+            st.error(f"Error al obtener el historial: {err}")
+            return []
 
 #
 # 3. Abstracción del Logger (Logger)

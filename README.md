@@ -1,1 +1,1 @@
-Intento de app tipo Spotify
+Reproductor de música que registra el historial teniendo como alternativa, dos bases de datos (SQLite y MySQL). Además registra los logs de consola y los guarda en un archivo de texto. Se puede también elegir entre modos de reproducción, local o desde Spotify (no implementado). Todo esto con el final de demostrar el principio de inversión de dependencias (DIP) y la separación de responsabilidades (SoC).

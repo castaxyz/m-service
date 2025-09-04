@@ -23,12 +23,37 @@ class SpotifyPlayer(IMusicPlayer):
         st.info(f"Reproduciendo: **{song_title}** en Spotify...")
         st.warning("Oops, el servicio de Spotify no está disponible en este momento.")
 
-class LocalMusicPlayer(IMusicPlayer):
-    """Nueva implementación que reproduce un archivo de audio local."""
+class LocalMusicPlayerWithMetadata(IMusicPlayer):
+    """Implementación que reproduce un archivo de audio local con metadatos."""
+    def __init__(self):
+        # Datos de canciones de ejemplo. Reemplaza estos con tus propios archivos.
+        self.songs = [
+            {"title": "Canción 1 - Sabor a Tierra", "audio_path": "data/songs/cancion1.mp3", "album_art_path": "data/albums/album1.png"},
+            {"title": "Canción 2 - Vientos de Cambio", "audio_path": "data/songs/cancion2.mp3", "album_art_path": "data/albums/album2.png"},
+            {"title": "Canción 3 - Horizonte Infinito", "audio_path": "data/songs/cancion3.mp3", "album_art_path": "data/albums/album3.png"},
+            {"title": "Canción 4 - Luz de Luna", "audio_path": "data/songs/cancion4.mp3", "album_art_path": "data/albums/album4.png"},
+            {"title": "Canción 5 - Sonidos del Amanecer", "audio_path": "data/songs/cancion5.mp3", "album_art_path": "data/albums/album5.png"},
+        ]
+        
     def play(self, song_title: str):
-        st.info(f"Reproduciendo: **{song_title}** desde un archivo de audio local...")
-        # Simular la reproducción con un archivo de audio de ejemplo.
-        st.audio("https://cdn.pixabay.com/audio/2023/12/16/audio_f5f5492d3b.mp3", format="audio/mp3", start_time=0, loop=False)
+        # Buscar la canción en los metadatos.
+        song_data = next((song for song in self.songs if song["title"] == song_title), None)
+        
+        if song_data and os.path.exists(song_data["audio_path"]):
+            st.info(f"Reproduciendo: **{song_data['title']}**")
+            
+            # Mostrar la imagen del álbum.
+            if os.path.exists(song_data["album_art_path"]):
+                st.image(song_data["album_art_path"], caption=f"Álbum de {song_data['title']}", use_column_width=True)
+            else:
+                st.warning("Imagen del álbum no encontrada. Mostrando un marcador de posición.")
+                st.image("https://placehold.co/400x400/1DB954/white?text=Sin+imagen", caption="Sin imagen de álbum", use_column_width=True)
+            
+            # Reproducir el audio.
+            st.audio(song_data["audio_path"], format="audio/mp3", start_time=0, loop=False)
+            
+        else:
+            st.warning(f"La canción '{song_title}' no fue encontrada o el archivo no existe.")
 
 #
 # 2. Abstracción del Repositorio de Historial (History Repository)
@@ -296,7 +321,7 @@ db_selection = st.sidebar.radio(
 )
 player_selection = st.sidebar.radio(
     "Selecciona el Reproductor",
-    ("Local", "Spotify")
+    ("Local", "Spotify (no disponible)")
 )
 
 if db_selection == "MySQL":
@@ -311,7 +336,7 @@ else:
 
 # Seleccionar la implementación del reproductor en función de la elección del usuario
 if player_selection == "Local":
-    player_implementation = LocalMusicPlayer()
+    player_implementation = LocalMusicPlayerWithMetadata()
 else:
     player_implementation = SpotifyPlayer()
 
@@ -326,7 +351,12 @@ tab1, tab2, tab3 = st.tabs(["Reproductor", "Historial y Logs", "Ajustes"])
 
 with tab1:
     st.subheader("Reproducir una canción")
-    song_title = st.text_input("Ingresa el título de la canción:", "Bohemian Rhapsody")
+    
+    if player_selection == "Local":
+        song_titles = [song["title"] for song in player_implementation.songs]
+        song_title = st.selectbox("Elige una canción:", song_titles)
+    else:
+        song_title = st.text_input("Ingresa el título de la canción:", "Bohemian Rhapsody")
 
     if st.button("Reproducir"):
         music_app.play_song(song_title)

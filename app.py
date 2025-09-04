@@ -28,11 +28,11 @@ class LocalMusicPlayerWithMetadata(IMusicPlayer):
     def __init__(self):
         # Datos de canciones de ejemplo. Asegúrate de que los nombres y extensiones de los archivos coincidan.
         self.songs = [
-            {"title": "The Last Point", "audio_path": "data/songs/cancion1.mp3", "album_art_path": "data/albums/album1.webp"},
-            {"title": "Running Night", "audio_path": "data/songs/cancion2.mp3", "album_art_path": "data/albums/album2.webp"},
-            {"title": "Retro Loungue", "audio_path": "data/songs/cancion3.mp3", "album_art_path": "data/albums/album3.webp"},
-            {"title": "Vlog Beat Background", "audio_path": "data/songs/cancion4.mp3", "album_art_path": "data/albums/album4.jpg"},
-            {"title": "Tell Me What", "audio_path": "data/songs/cancion5.mp3", "album_art_path": "data/albums/album5.webp"},
+            {"title": "Canción 1 - Sabor a Tierra", "audio_path": "data/songs/cancion1.mp3", "album_art_path": "data/albums/album1.png"},
+            {"title": "Canción 2 - Vientos de Cambio", "audio_path": "data/songs/cancion2.mp3", "album_art_path": "data/albums/album2.png"},
+            {"title": "Canción 3 - Horizonte Infinito", "audio_path": "data/songs/cancion3.mp3", "album_art_path": "data/albums/album3.png"},
+            {"title": "Canción 4 - Luz de Luna", "audio_path": "data/songs/cancion4.mp3", "album_art_path": "data/albums/album4.png"},
+            {"title": "Canción 5 - Sonidos del Amanecer", "audio_path": "data/songs/cancion5.mp3", "album_art_path": "data/albums/album5.png"},
         ]
         
     def play(self, song_title: str):
@@ -233,6 +233,15 @@ class FileLogger(ILogger):
         with open(self.file_path, "a") as f:
             f.write(f"[{datetime.datetime.now()}] {message}\n")
         st.info(f"Log guardado en '{self.file_path}'")
+    
+    def clear_logs(self):
+        """Elimina el contenido del archivo de logs."""
+        if os.path.exists(self.file_path):
+            with open(self.file_path, 'w') as f:
+                f.write(f"--- Log de la Aplicación de Música ---\n")
+            st.success("Logs eliminados exitosamente.")
+        else:
+            st.info("No hay logs que limpiar.")
 
 #
 # Módulos de Alto Nivel
@@ -390,6 +399,10 @@ with tab2:
         st.text_area("Logs del Sistema", logs, height=300)
     else:
         st.info("El archivo de logs aún no se ha creado.")
+    
+    if st.button("Limpiar Logs"):
+        logger_implementation.clear_logs()
+        st.rerun()
 
 with tab3:
     st.subheader("Opciones de la Base de Datos")

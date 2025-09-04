@@ -43,6 +43,11 @@ class IHistoryRepository(ABC):
     def get_history(self) -> List[str]:
         pass
 
+    @abstractmethod
+    def clear_history(self):
+        """Elimina todos los registros del historial."""
+        pass
+
 class SqlHistoryRepository(IHistoryRepository):
     """
     Implementación concreta para un repositorio de historial basado en SQLite.
@@ -74,6 +79,12 @@ class SqlHistoryRepository(IHistoryRepository):
         cursor.execute("SELECT song_title, timestamp FROM history ORDER BY timestamp DESC")
         rows = cursor.fetchall()
         return [f"'{row[0]}' - {row[1]}" for row in rows]
+    
+    def clear_history(self):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM history")
+        self.conn.commit()
+        st.success("Historial de SQLite eliminado exitosamente.")
 
 class MySqlHistoryRepository(IHistoryRepository):
     """Implementación concreta para un repositorio de historial basado en MySQL."""
@@ -162,6 +173,19 @@ class MySqlHistoryRepository(IHistoryRepository):
         except Exception as err:
             st.error(f"Error al obtener el historial: {err}")
             return []
+    
+    def clear_history(self):
+        if not self.conn:
+            st.error("No se pudo eliminar el historial: no hay conexión a la base de datos.")
+            return
+        
+        query = text("DELETE FROM history")
+        try:
+            self.conn.execute(query)
+            self.conn.commit()
+            st.success("Historial de MySQL eliminado exitosamente.")
+        except Exception as err:
+            st.error(f"Error al eliminar el historial: {err}")
 
 #
 # 3. Abstracción del Logger (Logger)
@@ -266,15 +290,22 @@ st.markdown('<h1 class="main-header">🎵 Aplicación de Música 🎵</h1>', uns
 logger_implementation = FileLogger()
 
 st.sidebar.title("Configuración")
-use_mysql = st.sidebar.checkbox("Usar MySQL en lugar de SQLite", value=False)
+db_selection = st.sidebar.radio(
+    "Selecciona la Base de Datos",
+    ("SQLite", "MySQL")
+)
 player_selection = st.sidebar.radio(
     "Selecciona el Reproductor",
     ("Local", "Spotify (no disponible)")
 )
 
-if use_mysql:
-    db_url = st.secrets["db_credentials"]["url"]
-    history_implementation = MySqlHistoryRepository(url=db_url)
+if db_selection == "MySQL":
+    try:
+        db_url = st.secrets["db_credentials"]["url"]
+        history_implementation = MySqlHistoryRepository(url=db_url)
+    except KeyError:
+        st.error("No se encontró la URL de la base de datos en los secretos de Streamlit. Por favor, configura 'db_credentials.url'.")
+        history_implementation = None
 else:
     history_implementation = SqlHistoryRepository()
 
@@ -291,7 +322,7 @@ music_app = MusicService(player=player_implementation,
                          logger=logger_implementation)
 
 
-tab1, tab2, tab3 = st.tabs(["Reproductor", "Historial y Logs", "Administrador de DB"])
+tab1, tab2, tab3 = st.tabs(["Reproductor", "Historial y Logs", "Ajustes"])
 
 with tab1:
     st.subheader("Reproducir una canción")
@@ -320,7 +351,12 @@ with tab2:
         st.info("El archivo de logs aún no se ha creado.")
 
 with tab3:
-    st.subheader("Eliminar la tabla 'history'")
-    st.warning("¡ADVERTENCIA! Esta acción borrará permanentemente todos los datos de historial de canciones.")
-    if st.button("Eliminar Tabla 'history'"):
-        music_app.history_repo.delete_table("history")
+    st.subheader("Opciones de la Base de Datos")
+    
+    if st.button("Eliminar todos los registros del historial"):
+        if history_implementation:
+            music_app.history_repo.clear_history()
+        else:
+            st.warning("No se pudo conectar a la base de datos. Por favor, verifica tu configuración en la barra lateral.")
+    
+    st.info("Esto eliminará todas las canciones guardadas, pero mantendrá la tabla intacta.")

@@ -21,7 +21,7 @@ class SpotifyPlayer(IMusicPlayer):
     """Implementación concreta para un reproductor de Spotify."""
     def play(self, song_title: str):
         st.info(f"Reproduciendo: **{song_title}** en Spotify...")
-        st.warning("Nota: La reproducción real de música con la API de Spotify requiere el SDK de reproducción web, lo que es más complejo de implementar en un solo archivo de Streamlit.")
+        st.warning("Oops, el servicio de Spotify no está disponible en este momento.")
 
 class LocalMusicPlayer(IMusicPlayer):
     """Nueva implementación que reproduce un archivo de audio local."""
@@ -263,16 +263,26 @@ st.markdown("""
 st.markdown('<h1 class="main-header">🎵 Aplicación de Música 🎵</h1>', unsafe_allow_html=True)
 
 # Inicializar las dependencias
-player_implementation = LocalMusicPlayer()
 logger_implementation = FileLogger()
 
-# Crear instancia del repositorio de historial (sin crear la tabla por defecto)
+st.sidebar.title("Configuración")
 use_mysql = st.sidebar.checkbox("Usar MySQL en lugar de SQLite", value=False)
+player_selection = st.sidebar.radio(
+    "Selecciona el Reproductor",
+    ("Local", "Spotify (no disponible)")
+)
+
 if use_mysql:
     db_url = st.secrets["db_credentials"]["url"]
     history_implementation = MySqlHistoryRepository(url=db_url)
 else:
     history_implementation = SqlHistoryRepository()
+
+# Seleccionar la implementación del reproductor en función de la elección del usuario
+if player_selection == "Local":
+    player_implementation = LocalMusicPlayer()
+else:
+    player_implementation = SpotifyPlayer()
 
 
 # Crear la instancia de MusicService para usar en las pestañas

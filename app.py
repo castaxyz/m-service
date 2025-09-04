@@ -77,20 +77,17 @@ class SqlHistoryRepository(IHistoryRepository):
         rows = cursor.fetchall()
         return [f"'{row[0]}' - {row[1]}" for row in rows]
 
-class MySqlHistoryRepository(IHistoryRepository):
-    """Implementación concreta para un repositorio de historial basado en MySQL con SQLAlchemy."""
-
+class MySqlHistoryRepository:
+    """Implementación concreta para un repositorio de historial basado en MySQL."""
     def __init__(self, url: str):
+        self.engine = None
+        self.conn = None
         try:
             # Crear engine con SQLAlchemy a partir de la URL
-            self.engine = create_engine(
-                url,
-                connect_args={"ssl": {"ssl_disabled": True}}  # necesario en Railway/Streamlit Cloud
-            )
+            self.engine = create_engine(url)
             self.conn = self.engine.connect()
-            st.success("Conexión a MySQL exitosa 🚀.")
+            st.success("Conexión a MySQL exitosa.")
         except Exception as err:
-            self.conn = None
             st.error(f"Error al conectar a MySQL: {err}")
 
     def create_table_from_schema(self, table_name, columns):
@@ -105,15 +102,15 @@ class MySqlHistoryRepository(IHistoryRepository):
                 col_def += " PRIMARY KEY"
             if 'NOT NULL' in col['constraints']:
                 col_def += " NOT NULL"
-            if 'PRIMARY KEY' in col['constraints'] and col['type'].upper() == 'INT':
+            if 'AUTO_INCREMENT' in col['constraints']:
                 col_def += " AUTO_INCREMENT"
             column_defs.append(col_def)
+
         query = f"CREATE TABLE IF NOT EXISTS `{table_name}` ({', '.join(column_defs)})"
 
         try:
-            with self.engine.begin() as conn:
-                conn.execute(text(query))
-            st.success(f"Tabla `{table_name}` creada exitosamente ✅.")
+            self.conn.execute(text(query))
+            st.success(f"Tabla `{table_name}` creada exitosamente.")
         except Exception as err:
             st.error(f"Error al crear la tabla: {err}")
 
@@ -125,9 +122,8 @@ class MySqlHistoryRepository(IHistoryRepository):
         timestamp = datetime.datetime.now()
         query = text("INSERT INTO history (song_title, timestamp) VALUES (:title, :ts)")
         try:
-            with self.engine.begin() as conn:
-                conn.execute(query, {"title": song_title, "ts": timestamp})
-            st.success("Historial de reproducción guardado en MySQL 🎵.")
+            self.conn.execute(query, {"title": song_title, "ts": timestamp})
+            st.success("Historial de reproducción guardado en MySQL.")
         except Exception as err:
             st.error(f"Error al guardar el historial: {err}")
 
@@ -135,11 +131,11 @@ class MySqlHistoryRepository(IHistoryRepository):
         if not self.conn:
             return []
 
+        query = text("SELECT song_title, timestamp FROM history ORDER BY timestamp DESC")
         try:
-            with self.engine.connect() as conn:
-                result = conn.execute(text("SELECT song_title, timestamp FROM history ORDER BY timestamp DESC"))
-                rows = result.fetchall()
-                return [f"'{row[0]}' - {row[1].strftime('%Y-%m-%d %H:%M:%S')}" for row in rows]
+            result = self.conn.execute(query)
+            rows = result.fetchall()
+            return [f"'{row[0]}' - {row[1].strftime('%Y-%m-%d %H:%M:%S')}" for row in rows]
         except Exception as err:
             st.error(f"Error al obtener el historial: {err}")
             return []

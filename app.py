@@ -76,7 +76,7 @@ class SqlHistoryRepository(IHistoryRepository):
         rows = cursor.fetchall()
         return [f"'{row[0]}' - {row[1]}" for row in rows]
 
-class MySqlHistoryRepository:
+class MySqlHistoryRepository(IHistoryRepository):
     """Implementación concreta para un repositorio de historial basado en MySQL."""
     def __init__(self, url: str):
         self.engine = None
@@ -122,6 +122,7 @@ class MySqlHistoryRepository:
         query = text("INSERT INTO history (song_title, timestamp) VALUES (:title, :ts)")
         try:
             self.conn.execute(query, {"title": song_title, "ts": timestamp})
+            self.conn.commit()
             st.success("Historial de reproducción guardado en MySQL.")
         except Exception as err:
             st.error(f"Error al guardar el historial: {err}")
@@ -133,8 +134,13 @@ class MySqlHistoryRepository:
         query = text("SELECT song_title, timestamp FROM history ORDER BY timestamp DESC")
         try:
             result = self.conn.execute(query)
-            rows = result.fetchall()
-            return [f"'{row[0]}' - {row[1].strftime('%Y-%m-%d %H:%M:%S')}" for row in rows]
+            # Utiliza un enfoque más seguro para obtener los valores de la fila
+            rows = []
+            for row in result.all():
+                song_title = row.song_title
+                timestamp = row.timestamp
+                rows.append(f"'{song_title}' - {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+            return rows
         except Exception as err:
             st.error(f"Error al obtener el historial: {err}")
             return []

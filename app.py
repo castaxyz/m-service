@@ -6,7 +6,7 @@ import sqlalchemy
 from abc import ABC, abstractmethod
 from typing import List
 from sqlalchemy import create_engine, text
-
+from urllib.parse import urlparse
 
 #
 # 1. Abstracción del Reproductor de Música (Music Player)
@@ -81,10 +81,15 @@ class MySqlHistoryRepository(IHistoryRepository):
         self.engine = None
         self.conn = None
         try:
+            # Parsear la URL para manejar credenciales con caracteres especiales
+            parsed_url = urlparse(url)
+            # Reconstruir la URL con el driver pymysql y un formato seguro
+            db_url_safe = f"mysql+pymysql://{parsed_url.username}:{parsed_url.password}@{parsed_url.hostname}:{parsed_url.port}{parsed_url.path}"
+            
             # Crear engine con SQLAlchemy a partir de la URL
-            self.engine = create_engine(url)
+            self.engine = create_engine(db_url_safe)
             self.conn = self.engine.connect()
-            self._create_table()  # <-- La tabla se crea automáticamente aquí
+            self._create_table()
             st.success("Conexión a MySQL exitosa.")
         except Exception as err:
             st.error(f"Error al conectar a MySQL: {err}")
@@ -258,7 +263,7 @@ logger_implementation = FileLogger()
 # Crear instancia del repositorio de historial (sin crear la tabla por defecto)
 use_mysql = st.sidebar.checkbox("Usar MySQL en lugar de SQLite", value=False)
 if use_mysql:
-    db_url = st.secrets["db_credentials"]["url"].replace("mysql://", "mysql+pymysql://")
+    db_url = st.secrets["db_credentials"]["url"]
     history_implementation = MySqlHistoryRepository(url=db_url)
 else:
     history_implementation = SqlHistoryRepository()

@@ -261,7 +261,7 @@ logger_implementation = FileLogger()
 # Crear instancia del repositorio de historial (sin crear la tabla por defecto)
 use_mysql = st.sidebar.checkbox("Usar MySQL en lugar de SQLite", value=False)
 if use_mysql:
-    db_url = st.secrets["db_credentials"]["url"]
+    db_url = st.secrets["db_credentials"]["url"].replace("mysql://", "mysql+pymysql://")
     history_implementation = MySqlHistoryRepository(url=db_url)
 else:
     history_implementation = SqlHistoryRepository()

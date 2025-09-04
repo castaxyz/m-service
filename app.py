@@ -2,7 +2,6 @@ import streamlit as st
 import datetime
 import os
 import sqlite3
-import mysql.connector
 import sqlalchemy
 from abc import ABC, abstractmethod
 from typing import List

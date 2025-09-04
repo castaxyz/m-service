@@ -46,7 +46,6 @@ class IHistoryRepository(ABC):
 class SqlHistoryRepository(IHistoryRepository):
     """
     Implementación concreta para un repositorio de historial basado en SQLite.
-    (Mantenido como referencia, ya que es la implementación original).
     """
     def __init__(self, db_name="playback_history.db"):
         self.conn = sqlite3.connect(db_name)
@@ -85,34 +84,31 @@ class MySqlHistoryRepository(IHistoryRepository):
             # Crear engine con SQLAlchemy a partir de la URL
             self.engine = create_engine(url)
             self.conn = self.engine.connect()
+            self._create_table()  # <-- La tabla se crea automáticamente aquí
             st.success("Conexión a MySQL exitosa.")
         except Exception as err:
             st.error(f"Error al conectar a MySQL: {err}")
 
-    def create_table_from_schema(self, table_name, columns):
+    def _create_table(self):
+        """Método privado para crear la tabla de historial."""
         if not self.conn:
             st.error("No se pudo crear la tabla: no hay conexión a la base de datos.")
             return
 
-        column_defs = []
-        for col in columns:
-            col_def = f"`{col['name']}` {col['type']}"
-            if 'PRIMARY KEY' in col['constraints']:
-                col_def += " PRIMARY KEY"
-            if 'NOT NULL' in col['constraints']:
-                col_def += " NOT NULL"
-            if 'AUTO_INCREMENT' in col['constraints']:
-                col_def += " AUTO_INCREMENT"
-            column_defs.append(col_def)
-
-        query = f"CREATE TABLE IF NOT EXISTS `{table_name}` ({', '.join(column_defs)})"
-
+        query = text("""
+            CREATE TABLE IF NOT EXISTS `history` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `song_title` VARCHAR(255) NOT NULL,
+                `timestamp` DATETIME NOT NULL
+            )
+        """)
         try:
-            self.conn.execute(text(query))
-            st.success(f"Tabla `{table_name}` creada exitosamente.")
+            self.conn.execute(query)
+            self.conn.commit()
+            st.success("Tabla 'history' creada exitosamente o ya existía.")
         except Exception as err:
             st.error(f"Error al crear la tabla: {err}")
-
+    
     def save_playback(self, song_title: str):
         if not self.conn:
             st.error("No se pudo guardar el historial: no hay conexión a la base de datos.")
@@ -274,7 +270,7 @@ music_app = MusicService(player=player_implementation,
                          logger=logger_implementation)
 
 
-tab1, tab2, tab3 = st.tabs(["Reproductor", "Historial y Logs", "Administrador de BD"])
+tab1, tab2 = st.tabs(["Reproductor", "Historial y Logs"])
 
 with tab1:
     st.subheader("Reproducir una canción")
@@ -301,27 +297,3 @@ with tab2:
         st.text_area("Logs del Sistema", logs, height=300)
     else:
         st.info("El archivo de logs aún no se ha creado.")
-
-with tab3:
-    st.subheader("Crear Tabla en MySQL")
-    if not use_mysql:
-        st.warning("Selecciona 'Usar MySQL' en la barra lateral para habilitar esta función.")
-    else:
-        table_name = st.text_input("Nombre de la Tabla", "history")
-
-        for i, col in enumerate(st.session_state.columns):
-            st.markdown(f"#### Columna {i+1}")
-            col['name'] = st.text_input("Nombre de la columna", key=f"col_name_{i}", value=col['name'])
-            col['type'] = st.selectbox("Tipo de dato", options=['INT', 'VARCHAR(255)', 'DATETIME'], key=f"col_type_{i}", index=['INT', 'VARCHAR(255)', 'DATETIME'].index(col['type']))
-            col['constraints'] = st.multiselect("Restricciones", options=['PRIMARY KEY', 'NOT NULL'], key=f"col_constraints_{i}", default=col['constraints'])
-            
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                st.button("Añadir otra columna", on_click=add_column, key=f"add_btn_{i}")
-            with col2:
-                if len(st.session_state.columns) > 1:
-                    st.button("Eliminar esta columna", on_click=remove_column, args=(i,), key=f"remove_btn_{i}")
-            st.markdown("---")
-        
-        if st.button("Crear Tabla"):
-            music_app.history_repo.create_table_from_schema(table_name, st.session_state.columns)

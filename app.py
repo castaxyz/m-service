@@ -265,8 +265,8 @@ logger_implementation = FileLogger()
 use_mysql = st.sidebar.checkbox("Usar MySQL en lugar de SQLite", value=False)
 if use_mysql:
     host = st.secrets["db_credentials"]["host"]
-    user = st.secrets["db_credentials"]["user"]
     port = st.secrets["db_credentials"]["port"]
+    user = st.secrets["db_credentials"]["user"]
     password = st.secrets["db_credentials"]["password"]
     database = st.secrets["db_credentials"]["database"]
     history_implementation = MySqlHistoryRepository(host=host, user=user, password=password, database=database)

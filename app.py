@@ -26,13 +26,13 @@ class SpotifyPlayer(IMusicPlayer):
 class LocalMusicPlayerWithMetadata(IMusicPlayer):
     """Implementación que reproduce un archivo de audio local con metadatos."""
     def __init__(self):
-        # Datos de canciones de ejemplo. Reemplaza estos con tus propios archivos.
+        # Datos de canciones de ejemplo. Asegúrate de que los nombres y extensiones de los archivos coincidan.
         self.songs = [
-            {"title": "Canción 1 - Sabor a Tierra", "audio_path": "data/songs/cancion1.mp3", "album_art_path": "data/albums/album1.png"},
-            {"title": "Canción 2 - Vientos de Cambio", "audio_path": "data/songs/cancion2.mp3", "album_art_path": "data/albums/album2.png"},
-            {"title": "Canción 3 - Horizonte Infinito", "audio_path": "data/songs/cancion3.mp3", "album_art_path": "data/albums/album3.png"},
-            {"title": "Canción 4 - Luz de Luna", "audio_path": "data/songs/cancion4.mp3", "album_art_path": "data/albums/album4.png"},
-            {"title": "Canción 5 - Sonidos del Amanecer", "audio_path": "data/songs/cancion5.mp3", "album_art_path": "data/albums/album5.png"},
+            {"title": "The Last Point", "audio_path": "data/songs/cancion1.mp3", "album_art_path": "data/albums/album1.webp"},
+            {"title": "Running Night", "audio_path": "data/songs/cancion2.mp3", "album_art_path": "data/albums/album2.webp"},
+            {"title": "Retro Loungue", "audio_path": "data/songs/cancion3.mp3", "album_art_path": "data/albums/album3.webp"},
+            {"title": "Vlog Beat Background", "audio_path": "data/songs/cancion4.mp3", "album_art_path": "data/albums/album4.jpg"},
+            {"title": "Tell Me What", "audio_path": "data/songs/cancion5.mp3", "album_art_path": "data/albums/album5.webp"},
         ]
         
     def play(self, song_title: str):
@@ -42,12 +42,12 @@ class LocalMusicPlayerWithMetadata(IMusicPlayer):
         if song_data and os.path.exists(song_data["audio_path"]):
             st.info(f"Reproduciendo: **{song_data['title']}**")
             
-            # Mostrar la imagen del álbum.
+            # Mostrar la imagen del álbum con un tamaño fijo para que no ocupe toda la pantalla.
             if os.path.exists(song_data["album_art_path"]):
-                st.image(song_data["album_art_path"], caption=f"Álbum de {song_data['title']}", use_column_width=True)
+                st.image(song_data["album_art_path"], caption=f"Álbum de {song_data['title']}", width=200)
             else:
                 st.warning("Imagen del álbum no encontrada. Mostrando un marcador de posición.")
-                st.image("https://placehold.co/400x400/1DB954/white?text=Sin+imagen", caption="Sin imagen de álbum", use_column_width=True)
+                st.image("https://placehold.co/400x400/1DB954/white?text=Sin+imagen", caption="Sin imagen de álbum", width=200)
             
             # Reproducir el audio.
             st.audio(song_data["audio_path"], format="audio/mp3", start_time=0, loop=False)
@@ -360,6 +360,17 @@ with tab1:
 
     if st.button("Reproducir"):
         music_app.play_song(song_title)
+        
+    st.markdown("---")
+    st.markdown("**Créditos de las Canciones**")
+    st.info(
+        "Las canciones utilizadas en esta demostración son de dominio público y provienen de Pixabay. Los autores son:\n"
+        "- raspberrymusic\n"
+        "- Alex_MakeMusic\n"
+        "- Bransboynd\n"
+        "- Tunetank\n"
+        "- Denys_Brodovskyi"
+    )
 
 with tab2:
     st.subheader("Historial de Reproducciones")

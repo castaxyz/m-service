@@ -28,11 +28,11 @@ class LocalMusicPlayerWithMetadata(IMusicPlayer):
     def __init__(self):
         # Datos de canciones de ejemplo. Asegúrate de que los nombres y extensiones de los archivos coincidan.
         self.songs = [
-            {"title": "Canción 1 - Sabor a Tierra", "audio_path": "data/songs/cancion1.mp3", "album_art_path": "data/albums/album1.png"},
-            {"title": "Canción 2 - Vientos de Cambio", "audio_path": "data/songs/cancion2.mp3", "album_art_path": "data/albums/album2.png"},
-            {"title": "Canción 3 - Horizonte Infinito", "audio_path": "data/songs/cancion3.mp3", "album_art_path": "data/albums/album3.png"},
-            {"title": "Canción 4 - Luz de Luna", "audio_path": "data/songs/cancion4.mp3", "album_art_path": "data/albums/album4.png"},
-            {"title": "Canción 5 - Sonidos del Amanecer", "audio_path": "data/songs/cancion5.mp3", "album_art_path": "data/albums/album5.png"},
+            {"title": "The Last Point", "audio_path": "data/songs/cancion1.mp3", "album_art_path": "data/albums/album1.webp"},
+            {"title": "Running Night", "audio_path": "data/songs/cancion2.mp3", "album_art_path": "data/albums/album2.webp"},
+            {"title": "Retro Lounge", "audio_path": "data/songs/cancion3.mp3", "album_art_path": "data/albums/album3.webp"},
+            {"title": "Vlog Beat Background", "audio_path": "data/songs/cancion4.mp3", "album_art_path": "data/albums/album4.jpg"},
+            {"title": "Tell Me What", "audio_path": "data/songs/cancion5.mp3", "album_art_path": "data/albums/album5.webp"},
         ]
         
     def play(self, song_title: str):

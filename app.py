@@ -3,6 +3,7 @@ import datetime
 import os
 import sqlite3
 import mysql.connector
+import sqlalchemy
 from abc import ABC, abstractmethod
 from typing import List
 
@@ -76,17 +77,14 @@ class SqlHistoryRepository(IHistoryRepository):
 
 class MySqlHistoryRepository(IHistoryRepository):
     """Implementación concreta para un repositorio de historial basado en MySQL."""
-    def __init__(self, host, user, password, database):
+    def __init__(self, url:str):
         self.conn = None
         try:
-            self.conn = mysql.connector.connect(
-                host=host,
-                user=user,
-                password=password,
-                database=database
-            )
+            # Crear engine con SQLAlchemy a partir de la URL
+            self.engine = sqlalchemy.create_engine(url)
+            self.conn = self.engine.connect()
             st.success("Conexión a MySQL exitosa.")
-        except mysql.connector.Error as err:
+        except Exception as err:
             st.error(f"Error al conectar a MySQL: {err}")
 
     def create_table_from_schema(self, table_name, columns):
@@ -264,14 +262,11 @@ logger_implementation = FileLogger()
 # Crear instancia del repositorio de historial (sin crear la tabla por defecto)
 use_mysql = st.sidebar.checkbox("Usar MySQL en lugar de SQLite", value=False)
 if use_mysql:
-    host = st.secrets["db_credentials"]["host"]
-    port = st.secrets["db_credentials"]["port"]
-    user = st.secrets["db_credentials"]["user"]
-    password = st.secrets["db_credentials"]["password"]
-    database = st.secrets["db_credentials"]["database"]
-    history_implementation = MySqlHistoryRepository(host=host, user=user, password=password, database=database)
+    db_url = st.secrets["db_credentials"]["url"]
+    history_implementation = MySqlHistoryRepository(url=db_url)
 else:
     history_implementation = SqlHistoryRepository()
+
 
 # Crear la instancia de MusicService para usar en las pestañas
 music_app = MusicService(player=player_implementation,

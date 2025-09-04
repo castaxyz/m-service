@@ -95,7 +95,10 @@ class MySqlHistoryRepository(IHistoryRepository):
             st.error(f"Error al conectar a MySQL: {err}")
 
     def _create_table(self):
-        """Método privado para crear la tabla de historial."""
+        """
+        Crea la tabla de historial si no existe.
+        No la borra para mantener los datos.
+        """
         if not self.conn:
             st.error("No se pudo crear la tabla: no hay conexión a la base de datos.")
             return
@@ -113,6 +116,20 @@ class MySqlHistoryRepository(IHistoryRepository):
             st.success("Tabla 'history' creada exitosamente o ya existía.")
         except Exception as err:
             st.error(f"Error al crear la tabla: {err}")
+
+    def delete_table(self, table_name: str):
+        """Método para eliminar una tabla de la base de datos."""
+        if not self.conn:
+            st.error("No se pudo eliminar la tabla: no hay conexión a la base de datos.")
+            return
+
+        query = text(f"DROP TABLE IF EXISTS `{table_name}`")
+        try:
+            self.conn.execute(query)
+            self.conn.commit()
+            st.success(f"Tabla '{table_name}' eliminada exitosamente.")
+        except Exception as err:
+            st.error(f"Error al eliminar la tabla: {err}")
     
     def save_playback(self, song_title: str):
         if not self.conn:
@@ -245,17 +262,6 @@ st.markdown("""
 
 st.markdown('<h1 class="main-header">🎵 Aplicación de Música 🎵</h1>', unsafe_allow_html=True)
 
-# Iniciar el estado de la sesión para el formulario de columnas
-if 'columns' not in st.session_state:
-    st.session_state.columns = [{'name': '', 'type': 'VARCHAR(255)', 'constraints': []}]
-
-def add_column():
-    st.session_state.columns.append({'name': '', 'type': 'VARCHAR(255)', 'constraints': []})
-
-def remove_column(index):
-    if len(st.session_state.columns) > 1:
-        st.session_state.columns.pop(index)
-
 # Inicializar las dependencias
 player_implementation = LocalMusicPlayer()
 logger_implementation = FileLogger()
@@ -275,7 +281,7 @@ music_app = MusicService(player=player_implementation,
                          logger=logger_implementation)
 
 
-tab1, tab2 = st.tabs(["Reproductor", "Historial y Logs"])
+tab1, tab2, tab3 = st.tabs(["Reproductor", "Historial y Logs", "Administrador de DB"])
 
 with tab1:
     st.subheader("Reproducir una canción")
@@ -302,3 +308,9 @@ with tab2:
         st.text_area("Logs del Sistema", logs, height=300)
     else:
         st.info("El archivo de logs aún no se ha creado.")
+
+with tab3:
+    st.subheader("Eliminar la tabla 'history'")
+    st.warning("¡ADVERTENCIA! Esta acción borrará permanentemente todos los datos de historial de canciones.")
+    if st.button("Eliminar Tabla 'history'"):
+        music_app.history_repo.delete_table("history")

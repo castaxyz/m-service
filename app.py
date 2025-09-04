@@ -296,7 +296,7 @@ db_selection = st.sidebar.radio(
 )
 player_selection = st.sidebar.radio(
     "Selecciona el Reproductor",
-    ("Local", "Spotify (no disponible)")
+    ("Local", "Spotify")
 )
 
 if db_selection == "MySQL":
